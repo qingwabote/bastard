@@ -3,5 +3,9 @@
   "description": "Not official, but useful.",
   "version": "0.0.1",
   "unity": "2022.3",
-  "displayName": "Bastard"
+  "displayName": "Bastard",
+  "dependencies": {
+    "com.unity.burst": "1.8.19",
+    "com.unity.collections": "2.5.7"
+  }
 }
