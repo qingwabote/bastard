@@ -35,12 +35,14 @@ namespace Bastard
         private class TimesTag { }
         private static readonly SharedStatic<NativeList<float>> s_Times = SharedStatic<NativeList<float>>.GetOrCreate<Profile, TimesTag>();
 
+        private static bool s_Initialized;
+
         public static int DefineEntry(FixedString32Bytes name)
         {
-            if (!Entries.Data.IsCreated)
+            if (!s_Initialized)
             {
-                Entries.Data = new NativeList<Entry>(Allocator.Persistent);
-                s_Times.Data = new NativeList<float>(Allocator.Persistent);
+                initialize();
+                s_Initialized = true;
             }
 
             Entries.Data.Add(new Entry()
@@ -65,6 +67,12 @@ namespace Bastard
         public static void End(int entry)
         {
             Set(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
+        }
+
+        private static void initialize()
+        {
+            Entries.Data = new NativeList<Entry>(Allocator.Persistent);
+            s_Times.Data = new NativeList<float>(Allocator.Persistent);
         }
     }
 }

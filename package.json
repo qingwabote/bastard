@@ -6,6 +6,7 @@
   "displayName": "Bastard",
   "dependencies": {
     "com.unity.burst": "1.8.19",
-    "com.unity.collections": "2.5.7"
+    "com.unity.collections": "2.5.7",
+    "com.unity.textmeshpro": "3.0.7"
   }
 }

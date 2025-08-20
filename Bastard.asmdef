@@ -3,7 +3,9 @@
     "rootNamespace": "",
     "references": [
         "Unity.Collections",
-        "Unity.Burst"
+        "Unity.Burst",
+        "Unity.TextMeshPro",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
