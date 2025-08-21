@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using UnityEngine;
@@ -9,6 +10,12 @@ namespace Bastard
     {
         public FixedString32Bytes Name;
         public float Delta;
+    }
+
+    public struct ProfileManaged
+    {
+        // There is no way to initialize some kind of static array in burst
+        public static List<Entry> Entries = new();
     }
 
     public struct Profile
@@ -35,14 +42,15 @@ namespace Bastard
         private class TimesTag { }
         private static readonly SharedStatic<NativeList<float>> s_Times = SharedStatic<NativeList<float>>.GetOrCreate<Profile, TimesTag>();
 
-        private static bool s_Initialized;
-
         public static int DefineEntry(FixedString32Bytes name)
         {
-            if (!s_Initialized)
+            if (ProfileManaged.Entries != null)
             {
-                initialize();
-                s_Initialized = true;
+                ProfileManaged.Entries.Add(new Entry()
+                {
+                    Name = name
+                });
+                return ProfileManaged.Entries.Count - 1;
             }
 
             Entries.Data.Add(new Entry()
@@ -69,10 +77,18 @@ namespace Bastard
             Set(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
         }
 
-        private static void initialize()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Initialize()
         {
             Entries.Data = new NativeList<Entry>(Allocator.Persistent);
             s_Times.Data = new NativeList<float>(Allocator.Persistent);
+
+            foreach (var entry in ProfileManaged.Entries)
+            {
+                Entries.Data.Add(entry);
+                s_Times.Data.Add(0);
+            }
+            ProfileManaged.Entries = null;
         }
     }
 }
