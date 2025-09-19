@@ -1,10 +1,9 @@
-using Bastard;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Budget
+namespace Bastard
 {
     public class Profiler : MonoBehaviour
     {

@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
-namespace Budget
+namespace Bastard
 {
     public static unsafe class NativeArrayExtensions
     {
