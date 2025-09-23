@@ -12,7 +12,7 @@ namespace Bastard
         public float Delta;
     }
 
-    public struct ProfileManaged
+    struct ProfileManaged
     {
         // There is no way to initialize some kind of static array in burst
         public static List<Entry> Entries = new();
@@ -42,6 +42,19 @@ namespace Bastard
         private class TimesTag { }
         private static readonly SharedStatic<NativeList<float>> s_Times = SharedStatic<NativeList<float>>.GetOrCreate<Profile, TimesTag>();
 
+        public static void Initialize()
+        {
+            Entries.Data = new NativeList<Entry>(Allocator.Persistent);
+            s_Times.Data = new NativeList<float>(Allocator.Persistent);
+
+            foreach (var entry in ProfileManaged.Entries)
+            {
+                Entries.Data.Add(entry);
+                s_Times.Data.Add(0);
+            }
+            ProfileManaged.Entries = null;
+        }
+
         public static int DefineEntry(FixedString32Bytes name)
         {
             if (ProfileManaged.Entries != null)
@@ -61,7 +74,7 @@ namespace Bastard
             return Entries.Data.Length - 1;
         }
 
-        public static void Set(int entry, float value)
+        public static void Delta(int entry, float value)
         {
             ref Entry ent = ref Entries.Data.ElementAt(entry);
             ent.Delta += value;
@@ -74,21 +87,7 @@ namespace Bastard
 
         public static void End(int entry)
         {
-            Set(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
-        }
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void Initialize()
-        {
-            Entries.Data = new NativeList<Entry>(Allocator.Persistent);
-            s_Times.Data = new NativeList<float>(Allocator.Persistent);
-
-            foreach (var entry in ProfileManaged.Entries)
-            {
-                Entries.Data.Add(entry);
-                s_Times.Data.Add(0);
-            }
-            ProfileManaged.Entries = null;
+            Delta(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
         }
     }
 }

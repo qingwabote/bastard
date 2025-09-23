@@ -7,6 +7,38 @@ namespace Bastard
 {
     public class Profiler : MonoBehaviour
     {
+        [RuntimeInitializeOnLoadMethod]
+        private static void Initialize()
+        {
+            // var system = PlayerLoop.GetCurrentPlayerLoop();
+            // for (int i = 0; i < system.subSystemList.Length; i++)
+            // {
+            //     ref var sub = ref system.subSystemList[i];
+            //     if (sub.type == typeof(UnityEngine.PlayerLoop.Initialization))
+            //     {
+            //         var systems = new PlayerLoopSystem[1 + sub.subSystemList.Length];
+            //         systems[0] = new PlayerLoopSystem()
+            //         {
+            //             updateDelegate = FrameStartHandle,
+            //             type = typeof(FrameStart)
+            //         };
+            //         Array.Copy(sub.subSystemList, 0, systems, 1, sub.subSystemList.Length);
+            //         sub.subSystemList = systems;
+            //         break;
+            //     }
+            // }
+            // PlayerLoop.SetPlayerLoop(system);
+
+            Profile.Initialize();
+        }
+
+        // private struct FrameStart { }
+        // private static float s_FrameStartTime;
+        // private static void FrameStartHandle()
+        // {
+        //     s_FrameStartTime = Time.realtimeSinceStartup;
+        // }
+
         private TextMeshProUGUI m_Label;
 
         private string m_Text;
@@ -26,7 +58,7 @@ namespace Bastard
             };
             RenderPipelineManager.endContextRendering += (context, cameras) =>
             {
-                Profile.Set(render_entry, (Time.realtimeSinceStartup - render_time) * 1000);
+                Profile.Delta(render_entry, (Time.realtimeSinceStartup - render_time) * 1000);
 
                 if (elapse < 1.0f)
                 {
