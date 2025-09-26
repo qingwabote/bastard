@@ -70,7 +70,7 @@ namespace Bastard
                 int PadRight = 12;
                 int PadLeft = 8;
 
-                string name = "FPS".PadRight(PadRight);
+                string name = "fps".PadRight(PadRight);
                 string text = $"{name} {math.round(frames / elapse).ToString().PadLeft(PadLeft)}";
 
                 ref var entries = ref Profile.Entries.Data;

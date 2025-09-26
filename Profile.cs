@@ -61,14 +61,14 @@ namespace Bastard
             {
                 ProfileManaged.Entries.Add(new Entry()
                 {
-                    Name = name
+                    Name = name.ToLowerAscii()
                 });
                 return ProfileManaged.Entries.Count - 1;
             }
 
             Entries.Data.Add(new Entry()
             {
-                Name = name
+                Name = name.ToLowerAscii()
             });
             s_Times.Data.Add(0);
             return Entries.Data.Length - 1;
