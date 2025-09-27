@@ -64,7 +64,7 @@ namespace Bastard
         {
             ProfileManaged.Entries.Add(new Entry()
             {
-                Name = name.ToLowerAscii()
+                Name = name
             });
             ID = ProfileManaged.Entries.Count - 1;
         }
@@ -79,7 +79,7 @@ namespace Bastard
 
             Entries.Data.Add(new Entry()
             {
-                Name = name.ToLowerAscii()
+                Name = name
             });
             s_Times.Data.Add(0);
             return Entries.Data.Length - 1;
