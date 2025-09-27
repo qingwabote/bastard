@@ -15,7 +15,7 @@ namespace Bastard
     struct ProfileManaged
     {
         // There is no way to initialize some kind of static array in burst
-        public static List<Entry> Entries = new();
+        public static List<Entry> Entries = new() { default };
     }
 
     public struct Profile
@@ -42,6 +42,9 @@ namespace Bastard
         private class TimesTag { }
         private static readonly SharedStatic<NativeList<float>> s_Times = SharedStatic<NativeList<float>>.GetOrCreate<Profile, TimesTag>();
 
+        private class InitializedTag { }
+        private static readonly SharedStatic<bool> Initialized = SharedStatic<bool>.GetOrCreate<Profile, InitializedTag>();
+
         public static void Initialize()
         {
             Entries.Data = new NativeList<Entry>(Allocator.Persistent);
@@ -53,17 +56,25 @@ namespace Bastard
                 s_Times.Data.Add(0);
             }
             ProfileManaged.Entries = null;
+            Initialized.Data = true;
+        }
+
+        [BurstDiscard]
+        private static void DefineEntryManaged(FixedString32Bytes name, out int ID)
+        {
+            ProfileManaged.Entries.Add(new Entry()
+            {
+                Name = name.ToLowerAscii()
+            });
+            ID = ProfileManaged.Entries.Count - 1;
         }
 
         public static int DefineEntry(FixedString32Bytes name)
         {
-            if (ProfileManaged.Entries != null)
+            if (!Initialized.Data)
             {
-                ProfileManaged.Entries.Add(new Entry()
-                {
-                    Name = name.ToLowerAscii()
-                });
-                return ProfileManaged.Entries.Count - 1;
+                DefineEntryManaged(name, out int ID);
+                return ID;
             }
 
             Entries.Data.Add(new Entry()

@@ -74,7 +74,7 @@ namespace Bastard
                 string text = $"{name} {math.round(frames / elapse).ToString().PadLeft(PadLeft)}";
 
                 ref var entries = ref Profile.Entries.Data;
-                for (int i = 0; i < entries.Length; i++)
+                for (int i = 1; i < entries.Length; i++)
                 {
                     ref var entry = ref entries.ElementAt(i);
                     name = entry.Name.ToString().PadRight(PadRight);
