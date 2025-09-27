@@ -43,7 +43,7 @@ namespace Bastard
         private static readonly SharedStatic<NativeList<float>> s_Times = SharedStatic<NativeList<float>>.GetOrCreate<Profile, TimesTag>();
 
         private class InitializedTag { }
-        private static readonly SharedStatic<bool> Initialized = SharedStatic<bool>.GetOrCreate<Profile, InitializedTag>();
+        private static readonly SharedStatic<bool> s_Initialized = SharedStatic<bool>.GetOrCreate<Profile, InitializedTag>();
 
         public static void Initialize()
         {
@@ -56,7 +56,7 @@ namespace Bastard
                 s_Times.Data.Add(0);
             }
             ProfileManaged.Entries = null;
-            Initialized.Data = true;
+            s_Initialized.Data = true;
         }
 
         [BurstDiscard]
@@ -71,7 +71,7 @@ namespace Bastard
 
         public static int DefineEntry(FixedString32Bytes name)
         {
-            if (!Initialized.Data)
+            if (!s_Initialized.Data)
             {
                 DefineEntryManaged(name, out int ID);
                 return ID;
