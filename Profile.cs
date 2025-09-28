@@ -131,17 +131,23 @@ namespace Bastard
 
         public static void Delta(int entry, float value)
         {
+            if (!s_Running.Data) return;
+
             ref Entry ent = ref Entries.Data.ElementAt(entry);
             ent.Delta += value;
         }
 
         public static void Begin(int entry)
         {
+            if (!s_Running.Data) return;
+
             s_Times.Data[entry] = Time.realtimeSinceStartup;
         }
 
         public static void End(int entry)
         {
+            if (!s_Running.Data) return;
+
             Delta(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
         }
     }
