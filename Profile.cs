@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -27,17 +28,15 @@ namespace Bastard
         {
             private int m_Entry;
 
-            private float m_Time;
-
             public Scope(int entry)
             {
                 m_Entry = entry;
-                m_Time = Time.realtimeSinceStartup;
+                Begin(entry);
             }
 
             public void Dispose()
             {
-                Delta(m_Entry, (Time.realtimeSinceStartup - m_Time) * 1000);
+                End(m_Entry);
             }
         }
 
@@ -141,6 +140,7 @@ namespace Bastard
         {
             if (!s_Running.Data) return;
 
+            JobHandle.ScheduleBatchedJobs();
             s_Times.Data[entry] = Time.realtimeSinceStartup;
         }
 
@@ -148,6 +148,7 @@ namespace Bastard
         {
             if (!s_Running.Data) return;
 
+            JobHandle.ScheduleBatchedJobs();
             Delta(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
         }
     }
