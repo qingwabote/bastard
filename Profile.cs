@@ -4,6 +4,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -66,9 +67,18 @@ namespace Bastard
             {
                 Begin(render);
             };
+            int main = DefineEntry("Main");
+            // List<ProfilerRecorderHandle> list = new();
+            // ProfilerRecorderHandle.GetAvailable(list);
+            // foreach (var item in list)
+            // {
+            //     Debug.Log($"ProfilerRecorderHandle {ProfilerRecorderHandle.GetDescription(item).Name}");
+            // }
+            var mainRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "CPU Main Thread Frame Time");
             RenderPipelineManager.endContextRendering += (context, cameras) =>
             {
                 End(render);
+                Delta(main, mainRecorder.CurrentValue / 1000000);
 
                 if (elapse < 1.0f)
                 {

@@ -1,5 +1,8 @@
+using System;
 using TMPro;
+using Unity.Profiling;
 using UnityEngine;
+using UnityEngine.LowLevel;
 
 namespace Bastard
 {
@@ -8,32 +11,70 @@ namespace Bastard
         [RuntimeInitializeOnLoadMethod]
         private static void Initialize()
         {
-            // var system = PlayerLoop.GetCurrentPlayerLoop();
-            // for (int i = 0; i < system.subSystemList.Length; i++)
-            // {
-            //     ref var sub = ref system.subSystemList[i];
-            //     if (sub.type == typeof(UnityEngine.PlayerLoop.Initialization))
-            //     {
-            //         var systems = new PlayerLoopSystem[1 + sub.subSystemList.Length];
-            //         systems[0] = new PlayerLoopSystem()
-            //         {
-            //             updateDelegate = FrameStartHandle,
-            //             type = typeof(FrameStart)
-            //         };
-            //         Array.Copy(sub.subSystemList, 0, systems, 1, sub.subSystemList.Length);
-            //         sub.subSystemList = systems;
-            //         break;
-            //     }
-            // }
-            // PlayerLoop.SetPlayerLoop(system);
+            var loop = PlayerLoop.GetCurrentPlayerLoop();
+            for (int index = 0; index < loop.subSystemList.Length; index++)
+            {
+                ref var sub = ref loop.subSystemList[index];
+                if (sub.type == typeof(UnityEngine.PlayerLoop.PostLateUpdate))
+                {
+                    // for (int i = 0; i < sub.subSystemList.Length; i++)
+                    // {
+                    //     ref var s = ref sub.subSystemList[i];
+                    //     Debug.Log($"PostLateUpdate {s.type.FullName}");
+                    // }
+                    int canvas = Profile.DefineEntry("Canvas");
+
+                    int UpdateCanvases = 0;
+                    for (; UpdateCanvases < sub.subSystemList.Length; UpdateCanvases++)
+                    {
+                        ref var s = ref sub.subSystemList[UpdateCanvases];
+                        if (s.type == typeof(UnityEngine.PlayerLoop.PostLateUpdate.PlayerUpdateCanvases))
+                        {
+                            break;
+                        }
+                    }
+                    var systems = new PlayerLoopSystem[sub.subSystemList.Length + 2];
+                    Array.Copy(sub.subSystemList, 0, systems, 0, UpdateCanvases);
+                    systems[UpdateCanvases] = new PlayerLoopSystem()
+                    {
+                        updateDelegate = () => { Profile.Begin(canvas); },
+                        type = typeof(PlayerUpdateCanvasesBefore)
+                    };
+                    systems[UpdateCanvases + 1] = sub.subSystemList[UpdateCanvases];
+                    systems[UpdateCanvases + 2] = new PlayerLoopSystem()
+                    {
+                        updateDelegate = () => { Profile.End(canvas); },
+                        type = typeof(PlayerUpdateCanvasesAfter)
+                    };
+                    Array.Copy(sub.subSystemList, UpdateCanvases + 1, systems, UpdateCanvases + 3, sub.subSystemList.Length - UpdateCanvases - 1);
+                    sub.subSystemList = systems;
+                    break;
+                }
+            }
+            PlayerLoop.SetPlayerLoop(loop);
         }
 
-        // private struct FrameStart { }
-        // private static float s_FrameStartTime;
-        // private static void FrameStartHandle()
-        // {
-        //     s_FrameStartTime = Time.realtimeSinceStartup;
-        // }
+        private struct PlayerUpdateCanvasesBefore { }
+        private struct PlayerUpdateCanvasesAfter { }
+
+        static double GetRecorderFrameAverage(ProfilerRecorder recorder)
+        {
+            var samplesCount = recorder.Capacity;
+            if (samplesCount == 0)
+                return 0;
+
+            double r = 0;
+            unsafe
+            {
+                var samples = stackalloc ProfilerRecorderSample[samplesCount];
+                recorder.CopyTo(samples, samplesCount);
+                for (var i = 0; i < samplesCount; ++i)
+                    r += samples[i].Value;
+                r /= samplesCount;
+            }
+
+            return r;
+        }
 
         private TextMeshProUGUI m_Label;
 
