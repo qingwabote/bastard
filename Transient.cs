@@ -27,7 +27,7 @@ namespace Bastard
             }
         }
 
-        public Transient(T value, T reset)
+        public Transient(T value, T reset = default)
         {
             m_Value = value;
             m_Reset = reset;
