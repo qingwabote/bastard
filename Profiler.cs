@@ -1,6 +1,5 @@
 using System;
 using TMPro;
-using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.LowLevel;
 
@@ -56,25 +55,6 @@ namespace Bastard
 
         private struct PlayerUpdateCanvasesBefore { }
         private struct PlayerUpdateCanvasesAfter { }
-
-        static double GetRecorderFrameAverage(ProfilerRecorder recorder)
-        {
-            var samplesCount = recorder.Capacity;
-            if (samplesCount == 0)
-                return 0;
-
-            double r = 0;
-            unsafe
-            {
-                var samples = stackalloc ProfilerRecorderSample[samplesCount];
-                recorder.CopyTo(samples, samplesCount);
-                for (var i = 0; i < samplesCount; ++i)
-                    r += samples[i].Value;
-                r /= samplesCount;
-            }
-
-            return r;
-        }
 
         private TextMeshProUGUI m_Label;
 

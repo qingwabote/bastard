@@ -19,8 +19,10 @@ namespace Bastard
 
     struct ProfileManaged
     {
-        // There is no way to initialize some kind of static array in burst
         public static List<Entry> Entries = new() { default };
+
+        public static readonly int Main = Profile.DefineEntry("Main");
+        public static readonly int Render = Profile.DefineEntry("Render");
     }
 
     public struct Profile
@@ -62,12 +64,10 @@ namespace Bastard
             float elapse = 0;
             uint frames = 1;
 
-            int render = DefineEntry("Render");
             RenderPipelineManager.beginContextRendering += (context, cameras) =>
             {
-                Begin(render);
+                Begin(ProfileManaged.Render);
             };
-            int main = DefineEntry("Main");
             // List<ProfilerRecorderHandle> list = new();
             // ProfilerRecorderHandle.GetAvailable(list);
             // foreach (var item in list)
@@ -77,8 +77,8 @@ namespace Bastard
             var mainRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "CPU Main Thread Frame Time");
             RenderPipelineManager.endContextRendering += (context, cameras) =>
             {
-                End(render);
-                Delta(main, mainRecorder.CurrentValue / 1000000);
+                End(ProfileManaged.Render);
+                Delta(ProfileManaged.Main, mainRecorder.CurrentValue / 1000000);
 
                 if (elapse < 1.0f)
                 {
