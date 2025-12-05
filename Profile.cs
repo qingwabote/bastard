@@ -27,9 +27,9 @@ namespace Bastard
 
     public struct Profile
     {
-        public struct Scope : IDisposable
+        public readonly ref struct Scope
         {
-            private int m_Entry;
+            private readonly int m_Entry;
 
             public Scope(int entry)
             {
