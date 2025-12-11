@@ -14,7 +14,12 @@ namespace Bastard
 
         private readonly Func<T> m_Create;
 
-        public RecycleQueue(Func<T> create = null)
+        public RecycleQueue()
+        {
+            m_Create = null;
+        }
+
+        public RecycleQueue(Func<T> create)
         {
             m_Create = create;
         }
