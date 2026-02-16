@@ -172,11 +172,11 @@ MonoBehaviour:
   material: {fileID: -3109208534529874336}
   materialHashCode: -1512593138
   m_Version: 1.1.0
-  m_SourceFontFileGUID: 18af7aa5e7e8c084ca9c59bc9696314a
-  m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 18af7aa5e7e8c084ca9c59bc9696314a,
+  m_SourceFontFileGUID: 31a5e9c502e74e343ae3a3b70a83ec68
+  m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 31a5e9c502e74e343ae3a3b70a83ec68,
     type: 3}
-  m_SourceFontFile: {fileID: 12800000, guid: 18af7aa5e7e8c084ca9c59bc9696314a, type: 3}
-  m_AtlasPopulationMode: 1
+  m_SourceFontFile: {fileID: 0}
+  m_AtlasPopulationMode: 0
   m_FaceInfo:
     m_FaceIndex: 0
     m_FamilyName: Roboto Mono

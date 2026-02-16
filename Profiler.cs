@@ -67,7 +67,7 @@ namespace Bastard
 
         void Update()
         {
-            int PadRight = 12;
+            int PadRight = 11;
             int PadLeft = 8;
 
             string name = "FPS".PadRight(PadRight);

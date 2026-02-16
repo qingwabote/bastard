@@ -48,7 +48,7 @@ namespace Bastard
         private static void CheckElementReadAccess<T>(NativeArray<T> array, int index) where T : unmanaged
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if (index < 0 || index > array.Length)
+            if (index < 0 || index >= array.Length)
             {
                 FailOutOfRangeError(index, array.Length);
             }
@@ -61,7 +61,7 @@ namespace Bastard
         private static void CheckElementWriteAccess<T>(NativeArray<T> array, int index) where T : unmanaged
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if (index < 0 || index > array.Length)
+            if (index < 0 || index >= array.Length)
             {
                 FailOutOfRangeError(index, array.Length);
             }

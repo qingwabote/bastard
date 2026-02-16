@@ -1,8 +1,8 @@
 namespace Bastard
 {
+    // https://stackoverflow.com/questions/1646807/quick-and-simple-hash-code-combinations
     public class HashCode
     {
-        // https://stackoverflow.com/questions/1646807/quick-and-simple-hash-code-combinations
         public static int Combine(int a, int b)
         {
             unchecked
@@ -22,6 +22,19 @@ namespace Bastard
                 hash = hash * 31 + a;
                 hash = hash * 31 + b;
                 hash = hash * 31 + c;
+                return hash;
+            }
+        }
+
+        public static int Combine(int a, int b, int c, int d)
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + a;
+                hash = hash * 31 + b;
+                hash = hash * 31 + c;
+                hash = hash * 31 + d;
                 return hash;
             }
         }
