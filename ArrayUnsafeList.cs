@@ -95,7 +95,7 @@ namespace Bastard
             }
             if (src == null)
             {
-                UnsafeUtility.MemClear(m_Ptr + m_Length, count * UnsafeUtility.SizeOf<T>());
+                UnsafeUtility.MemSet(m_Ptr + m_Length, 0, count * UnsafeUtility.SizeOf<T>());
             }
             else
             {
