@@ -230,7 +230,7 @@ namespace Bastard
         {
             if (-1 == Find(key))
             {
-                Add(key, GetBucket(key));
+                return Add(key, GetBucket(key));
             }
             return -1;
         }
@@ -756,7 +756,7 @@ namespace Bastard
             return m_Data.TryGetValue(key, out item);
         }
 
-        public ref TValue EnsureValueRef(TKey key, out bool uninitialized)
+        public TValue* EnsureValuePtr(TKey key, out bool uninitialized)
         {
             var idx = -1;
 
@@ -776,7 +776,13 @@ namespace Bastard
                 uninitialized = false;
             }
 
-            return ref UnsafeUtility.ArrayElementAsRef<TValue>(m_Data.Ptr, idx);
+            return (TValue*)m_Data.Ptr + idx;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref TValue EnsureValueRef(TKey key, out bool uninitialized)
+        {
+            return ref UnsafeUtility.AsRef<TValue>(EnsureValuePtr(key, out uninitialized));
         }
 
         /// <summary>

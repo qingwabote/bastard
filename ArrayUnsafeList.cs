@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -35,17 +36,13 @@ namespace Bastard
         [AOT.MonoPInvokeCallback(typeof(ArrayAllocator.AllocDelegate))]
         static public unsafe void* Alloc(ArrayType arrayType, ref ushort length, out short location)
         {
-            Array array = null;
-            void* ptr = null;
-            switch (arrayType)
+            void* ptr;
+            Array array = arrayType switch
             {
-                case ArrayType.Float:
-                    array = TransientArrayPool<float>.Shared.Rent(length, out ptr);
-                    break;
-                case ArrayType.Vector:
-                    array = TransientArrayPool<Vector4>.Shared.Rent(length, out ptr);
-                    break;
-            }
+                ArrayType.Float => TransientArrayPool<float>.Shared.Rent(length, out ptr),
+                ArrayType.Vector => TransientArrayPool<Vector4>.Shared.Rent(length, out ptr),
+                _ => throw new InvalidOperationException($"Unexpected ArrayType: {arrayType}"),
+            };
             length = (ushort)array.Length;
             if (s_Arrays.Length == m_Cursor.Value)
             {
@@ -65,17 +62,16 @@ namespace Bastard
     public unsafe struct ArrayUnsafeList<T> where T : unmanaged
     {
         private T* m_Ptr;
-        public readonly T* Ptr => m_Ptr;
 
         private short m_Location;
-        public readonly int Location => m_Location;
-
         private ushort m_Capacity;
-
         private ushort m_Length;
+        public readonly ArrayType ArrayType;
+
+        public readonly T* Ptr => m_Ptr;
+        public readonly int Location => m_Location;
         public readonly int Length => m_Length;
 
-        public readonly ArrayType ArrayType;
 
         public ArrayUnsafeList(ArrayType arrayType, int capacity)
         {
@@ -95,11 +91,11 @@ namespace Bastard
             }
             if (src == null)
             {
-                UnsafeUtility.MemSet(m_Ptr + m_Length, 0, count * UnsafeUtility.SizeOf<T>());
+                UnsafeUtility.MemSet(m_Ptr + m_Length, 0, count * sizeof(T));
             }
             else
             {
-                UnsafeUtility.MemCpy(m_Ptr + m_Length, src, count * UnsafeUtility.SizeOf<T>());
+                UnsafeUtility.MemCpy(m_Ptr + m_Length, src, count * sizeof(T));
             }
             m_Length += (ushort)count;
         }
@@ -108,17 +104,27 @@ namespace Bastard
         {
             var size = ArrayType switch
             {
-                ArrayType.Float => UnsafeUtility.SizeOf<float>(),
-                ArrayType.Vector => UnsafeUtility.SizeOf<Vector4>(),
+                ArrayType.Float => sizeof(float),
+                ArrayType.Vector => sizeof(Vector4),
                 _ => throw new InvalidOperationException($"Unexpected ArrayType: {ArrayType}"),
             };
-            var length = (ushort)math.ceil(UnsafeUtility.SizeOf<T>() * capacity / (float)size);
-            // for burst
-            // var ptr = (T*)ArrayAllocator.Alloc.Data.Invoke(ArrayType, ref length, out m_Location);
-            var ptr = (T*)ArrayAllocatorManaged.Alloc(ArrayType, ref length, out m_Location);
-            UnsafeUtility.MemCpy(ptr, m_Ptr, m_Length * UnsafeUtility.SizeOf<T>());
-            m_Ptr = ptr;
-            m_Capacity = (ushort)(size * length / UnsafeUtility.SizeOf<T>());
+            var length = (ushort)math.ceil(sizeof(T) * capacity / (float)size);
+            Alloc(ArrayType, ref length, out m_Location, out var ptr, out var claimed);
+            if (!claimed)
+            {
+                ptr = ArrayAllocator.Alloc.Data.Invoke(ArrayType, ref length, out m_Location);
+            }
+            UnsafeUtility.MemCpy(ptr, m_Ptr, m_Length * sizeof(T));
+            m_Ptr = (T*)ptr;
+            m_Capacity = (ushort)(size * length / sizeof(T));
+        }
+
+        [BurstDiscard]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Alloc(ArrayType arrayType, ref ushort length, out short location, out void* ptr, out bool claimed)
+        {
+            ptr = ArrayAllocatorManaged.Alloc(arrayType, ref length, out location);
+            claimed = true;
         }
     }
 }
