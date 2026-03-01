@@ -36,13 +36,21 @@ namespace Bastard
                     Array.Copy(sub.subSystemList, 0, systems, 0, UpdateCanvases);
                     systems[UpdateCanvases] = new PlayerLoopSystem()
                     {
-                        updateDelegate = () => { Profile.Begin(canvas); },
+                        updateDelegate = () =>
+                        {
+                            if (!Application.isPlaying) return;
+                            Profile.Begin(canvas);
+                        },
                         type = typeof(PlayerUpdateCanvasesBefore)
                     };
                     systems[UpdateCanvases + 1] = sub.subSystemList[UpdateCanvases];
                     systems[UpdateCanvases + 2] = new PlayerLoopSystem()
                     {
-                        updateDelegate = () => { Profile.End(canvas); },
+                        updateDelegate = () =>
+                        {
+                            if (!Application.isPlaying) return;
+                            Profile.End(canvas);
+                        },
                         type = typeof(PlayerUpdateCanvasesAfter)
                     };
                     Array.Copy(sub.subSystemList, UpdateCanvases + 1, systems, UpdateCanvases + 3, sub.subSystemList.Length - UpdateCanvases - 1);
@@ -74,7 +82,7 @@ namespace Bastard
             string text = $"{name} {Profile.FPS.ToString().PadLeft(PadLeft)}";
 
             ref var entries = ref Profile.Entries.Data;
-            for (int i = 1; i < entries.Length; i++)
+            for (int i = 0; i < entries.Length; i++)
             {
                 ref var entry = ref entries.ElementAt(i);
                 name = entry.Name.ToString().PadRight(PadRight);

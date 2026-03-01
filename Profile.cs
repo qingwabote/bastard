@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -14,14 +13,6 @@ namespace Bastard
         public FixedString32Bytes Name;
         public float Delta;
         public float Average;
-    }
-
-    struct ProfileManaged
-    {
-        public static List<Entry> Entries = new() { default };
-
-        public static readonly int Main = Profile.DefineEntry("Main");
-        public static readonly int Render = Profile.DefineEntry("Render");
     }
 
     public struct Profile
@@ -45,13 +36,24 @@ namespace Bastard
         public static float FPS { get; private set; }
 
         private class EntriesTag { }
-        public static readonly SharedStatic<NativeList<Entry>> Entries = SharedStatic<NativeList<Entry>>.GetOrCreate<Profile, EntriesTag>();
+        public static readonly SharedStatic<FixedList512Bytes<Entry>> Entries = SharedStatic<FixedList512Bytes<Entry>>.GetOrCreate<EntriesTag>();
 
         private class TimesTag { }
-        private static readonly SharedStatic<NativeList<float>> s_Times = SharedStatic<NativeList<float>>.GetOrCreate<Profile, TimesTag>();
+        private static readonly SharedStatic<FixedList64Bytes<float>> s_Times = SharedStatic<FixedList64Bytes<float>>.GetOrCreate<TimesTag>();
 
         private class RunningTag { }
-        private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<Profile, RunningTag>();
+        private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<RunningTag>();
+
+        private static readonly int s_Main;
+        private static readonly int s_Render;
+
+        static Profile()
+        {
+            Entries.Data = new() { new Entry() { Name = "Main" }, new Entry() { Name = "Render" } };
+            s_Times.Data = new() { 0, 0 };
+            s_Main = 0;
+            s_Render = 1;
+        }
 
         public static void Run()
         {
@@ -61,11 +63,11 @@ namespace Bastard
             }
 
             float elapse = 0;
-            uint frames = 1;
+            int frames = 0;
 
             RenderPipelineManager.beginContextRendering += (context, cameras) =>
             {
-                Begin(ProfileManaged.Render);
+                Begin(s_Render);
             };
             // List<ProfilerRecorderHandle> list = new();
             // ProfilerRecorderHandle.GetAvailable(list);
@@ -76,59 +78,36 @@ namespace Bastard
             var mainRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "CPU Main Thread Frame Time");
             RenderPipelineManager.endContextRendering += (context, cameras) =>
             {
-                End(ProfileManaged.Render);
-                Delta(ProfileManaged.Main, mainRecorder.CurrentValue / 1000000);
+                End(s_Render);
+                Delta(s_Main, mainRecorder.CurrentValue / 1000000);
+
+                frames += 1;
+                elapse += Time.unscaledDeltaTime;
 
                 if (elapse < 1.0f)
                 {
-                    frames++;
-                    elapse += Time.unscaledDeltaTime;
                     return;
                 }
 
                 FPS = math.round(frames / elapse);
 
                 ref var entries = ref Entries.Data;
-                for (int i = 1; i < entries.Length; i++)
+                for (int i = 0; i < entries.Length; i++)
                 {
                     ref var entry = ref entries.ElementAt(i);
                     entry.Average = entry.Delta / frames;
                     entry.Delta = 0;
                 }
 
-                frames = 1;
-                elapse = Time.unscaledDeltaTime;
+                frames = 0;
+                elapse = 0;
             };
 
-            Entries.Data = new NativeList<Entry>(Allocator.Persistent);
-            s_Times.Data = new NativeList<float>(Allocator.Persistent);
-            foreach (var entry in ProfileManaged.Entries)
-            {
-                Entries.Data.Add(entry);
-                s_Times.Data.Add(0);
-            }
-            ProfileManaged.Entries = null;
             s_Running.Data = true;
-        }
-
-        [BurstDiscard]
-        private static void DefineEntryManaged(FixedString32Bytes name, out int ID)
-        {
-            ProfileManaged.Entries.Add(new Entry()
-            {
-                Name = name
-            });
-            ID = ProfileManaged.Entries.Count - 1;
         }
 
         public static int DefineEntry(FixedString32Bytes name)
         {
-            if (!s_Running.Data)
-            {
-                DefineEntryManaged(name, out int ID);
-                return ID;
-            }
-
             Entries.Data.Add(new Entry()
             {
                 Name = name
@@ -139,24 +118,18 @@ namespace Bastard
 
         public static void Delta(int entry, float value)
         {
-            if (!s_Running.Data) return;
-
             ref Entry ent = ref Entries.Data.ElementAt(entry);
             ent.Delta += value;
         }
 
         public static void Begin(int entry)
         {
-            if (!s_Running.Data) return;
-
             JobHandle.ScheduleBatchedJobs();
             s_Times.Data[entry] = Time.realtimeSinceStartup;
         }
 
         public static void End(int entry)
         {
-            if (!s_Running.Data) return;
-
             JobHandle.ScheduleBatchedJobs();
             Delta(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
         }
