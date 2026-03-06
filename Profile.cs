@@ -11,8 +11,8 @@ namespace Bastard
     public struct Entry
     {
         public FixedString32Bytes Name;
-        public float Delta;
-        public float Average;
+        public float Avg;
+        public float Max;
     }
 
     public struct Profile
@@ -38,8 +38,12 @@ namespace Bastard
         private class EntriesTag { }
         public static readonly SharedStatic<FixedList512Bytes<Entry>> Entries = SharedStatic<FixedList512Bytes<Entry>>.GetOrCreate<EntriesTag>();
 
-        private class TimesTag { }
-        private static readonly SharedStatic<FixedList64Bytes<float>> s_Times = SharedStatic<FixedList64Bytes<float>>.GetOrCreate<TimesTag>();
+        private struct Timer
+        {
+            public float Time;
+            public float Sum;
+        }
+        private static readonly SharedStatic<FixedList128Bytes<Timer>> s_Timers = SharedStatic<FixedList128Bytes<Timer>>.GetOrCreate<Timer>();
 
         private class RunningTag { }
         private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<RunningTag>();
@@ -50,7 +54,7 @@ namespace Bastard
         static Profile()
         {
             Entries.Data = new() { new Entry() { Name = "Main" }, new Entry() { Name = "Render" } };
-            s_Times.Data = new() { 0, 0 };
+            s_Timers.Data = new() { default, default };
             s_Main = 0;
             s_Render = 1;
         }
@@ -94,14 +98,17 @@ namespace Bastard
                 ref var entries = ref Entries.Data;
                 for (int i = 0; i < entries.Length; i++)
                 {
+                    ref var timer = ref s_Timers.Data.ElementAt(i);
                     ref var entry = ref entries.ElementAt(i);
-                    entry.Average = entry.Delta / frames;
-                    entry.Delta = 0;
+                    entry.Avg = timer.Sum / frames;
+                    timer.Sum = 0;
                 }
 
                 frames = 0;
                 elapse = 0;
             };
+
+            Reset();
 
             s_Running.Data = true;
         }
@@ -112,26 +119,35 @@ namespace Bastard
             {
                 Name = name
             });
-            s_Times.Data.Add(0);
+            s_Timers.Data.Add(default);
             return Entries.Data.Length - 1;
         }
 
         public static void Delta(int entry, float value)
         {
-            ref Entry ent = ref Entries.Data.ElementAt(entry);
-            ent.Delta += value;
+            s_Timers.Data.ElementAt(entry).Sum += value;
+            ref var e = ref Entries.Data.ElementAt(entry);
+            e.Max = math.max(value, e.Max);
         }
 
         public static void Begin(int entry)
         {
             JobHandle.ScheduleBatchedJobs();
-            s_Times.Data[entry] = Time.realtimeSinceStartup;
+            s_Timers.Data.ElementAt(entry).Time = Time.realtimeSinceStartup;
         }
 
         public static void End(int entry)
         {
             JobHandle.ScheduleBatchedJobs();
-            Delta(entry, (Time.realtimeSinceStartup - s_Times.Data[entry]) * 1000);
+            Delta(entry, (Time.realtimeSinceStartup - s_Timers.Data[entry].Time) * 1000);
+        }
+
+        public static void Reset()
+        {
+            s_Timers.Data = new()
+            {
+                Length = s_Timers.Data.Length
+            };
         }
     }
 }

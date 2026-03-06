@@ -5,6 +5,7 @@ using UnityEngine.LowLevel;
 
 namespace Bastard
 {
+    [RequireComponent(typeof(TextMeshProUGUI))]
     public class Profiler : MonoBehaviour
     {
         [RuntimeInitializeOnLoadMethod]
@@ -68,15 +69,15 @@ namespace Bastard
 
         void Start()
         {
-            Profile.Run();
-
             m_Label = GetComponent<TextMeshProUGUI>();
+
+            Profile.Run();
         }
 
         void Update()
         {
-            int PadRight = 11;
-            int PadLeft = 8;
+            int PadRight = 9;
+            int PadLeft = 16;
 
             string name = "FPS".PadRight(PadRight);
             string text = $"{name} {Profile.FPS.ToString().PadLeft(PadLeft)}";
@@ -87,8 +88,8 @@ namespace Bastard
                 ref var entry = ref entries.ElementAt(i);
                 name = entry.Name.ToString().PadRight(PadRight);
 
-                string average = entry.Average.ToString("F3").PadLeft(PadLeft);
-                text += $"\n{name} {average}";
+                string value = entry.Avg.ToString("F3") + "/" + entry.Max.ToString("F3");
+                text += $"\n{name} {value.PadLeft(PadLeft)}";
             }
 
             m_Label.text = text;
