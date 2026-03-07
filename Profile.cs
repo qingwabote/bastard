@@ -37,7 +37,7 @@ namespace Bastard
 
             public readonly int Entry;
 
-            private float m_Time;
+            private double m_Time;
 
             internal Handle(int entry)
             {
@@ -50,17 +50,32 @@ namespace Bastard
                 return new(this);
             }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+            [System.Runtime.InteropServices.DllImport("__Internal")]
+            private static extern double emscripten_get_now();
+
+            public void Begin()
+            {
+                m_Time = emscripten_get_now(); 
+            }
+
+            public void End()
+            {
+                Profile.Delta(Entry, (float)(emscripten_get_now() - m_Time));
+            }
+#else
             public void Begin()
             {
                 JobHandle.ScheduleBatchedJobs();
-                m_Time = Time.realtimeSinceStartup;
+                m_Time = Time.realtimeSinceStartupAsDouble;
             }
 
             public void End()
             {
                 JobHandle.ScheduleBatchedJobs();
-                Profile.Delta(Entry, (Time.realtimeSinceStartup - m_Time) * 1000);
+                Profile.Delta(Entry, (float)(Time.realtimeSinceStartupAsDouble - m_Time) * 1000);
             }
+#endif
 
             public void Delta(float value)
             {
