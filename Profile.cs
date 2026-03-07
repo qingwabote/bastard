@@ -17,19 +17,54 @@ namespace Bastard
 
     public struct Profile
     {
-        public readonly ref struct Scope
+        public struct Handle
         {
-            private readonly int m_Entry;
-
-            public Scope(int entry)
+            public ref struct Scope
             {
-                m_Entry = entry;
-                Begin(entry);
+                private Handle m_Hanlde;
+
+                internal Scope(Handle hanlde)
+                {
+                    m_Hanlde = hanlde;
+                    m_Hanlde.Begin();
+                }
+
+                public void Dispose()
+                {
+                    m_Hanlde.End();
+                }
             }
 
-            public void Dispose()
+            public readonly int Entry;
+
+            private float m_Time;
+
+            internal Handle(int entry)
             {
-                End(m_Entry);
+                Entry = entry;
+                m_Time = 0;
+            }
+
+            public Scope MakeScope()
+            {
+                return new(this);
+            }
+
+            public void Begin()
+            {
+                JobHandle.ScheduleBatchedJobs();
+                m_Time = Time.realtimeSinceStartup;
+            }
+
+            public void End()
+            {
+                JobHandle.ScheduleBatchedJobs();
+                Profile.Delta(Entry, (Time.realtimeSinceStartup - m_Time) * 1000);
+            }
+
+            public void Delta(float value)
+            {
+                Profile.Delta(Entry, value);
             }
         }
 
@@ -40,23 +75,22 @@ namespace Bastard
 
         private struct Timer
         {
-            public float Time;
             public float Sum;
         }
-        private static readonly SharedStatic<FixedList128Bytes<Timer>> s_Timers = SharedStatic<FixedList128Bytes<Timer>>.GetOrCreate<Timer>();
+        private static readonly SharedStatic<FixedList64Bytes<Timer>> s_Timers = SharedStatic<FixedList64Bytes<Timer>>.GetOrCreate<Timer>();
 
         private class RunningTag { }
         private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<RunningTag>();
 
-        private static readonly int s_Main;
-        private static readonly int s_Render;
+        private static Handle s_Main;
+        private static Handle s_Render;
 
         static Profile()
         {
             Entries.Data = new() { new Entry() { Name = "Main" }, new Entry() { Name = "Render" } };
             s_Timers.Data = new() { default, default };
-            s_Main = 0;
-            s_Render = 1;
+            s_Main = new(0);
+            s_Render = new(1);
         }
 
         public static void Run()
@@ -71,7 +105,7 @@ namespace Bastard
 
             RenderPipelineManager.beginContextRendering += (context, cameras) =>
             {
-                Begin(s_Render);
+                s_Render.Begin();
             };
             // List<ProfilerRecorderHandle> list = new();
             // ProfilerRecorderHandle.GetAvailable(list);
@@ -82,8 +116,8 @@ namespace Bastard
             var mainRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "CPU Main Thread Frame Time");
             RenderPipelineManager.endContextRendering += (context, cameras) =>
             {
-                End(s_Render);
-                Delta(s_Main, mainRecorder.CurrentValue / 1000000);
+                s_Render.End();
+                s_Main.Delta(mainRecorder.CurrentValue / 1000000);
 
                 frames += 1;
                 elapse += Time.unscaledDeltaTime;
@@ -113,33 +147,21 @@ namespace Bastard
             s_Running.Data = true;
         }
 
-        public static int DefineEntry(FixedString32Bytes name)
+        public static Handle DefineEntry(FixedString32Bytes name)
         {
             Entries.Data.Add(new Entry()
             {
                 Name = name
             });
             s_Timers.Data.Add(default);
-            return Entries.Data.Length - 1;
+            return new(Entries.Data.Length - 1);
         }
 
-        public static void Delta(int entry, float value)
+        private static void Delta(int entry, float value)
         {
             s_Timers.Data.ElementAt(entry).Sum += value;
             ref var e = ref Entries.Data.ElementAt(entry);
             e.Max = math.max(value, e.Max);
-        }
-
-        public static void Begin(int entry)
-        {
-            JobHandle.ScheduleBatchedJobs();
-            s_Timers.Data.ElementAt(entry).Time = Time.realtimeSinceStartup;
-        }
-
-        public static void End(int entry)
-        {
-            JobHandle.ScheduleBatchedJobs();
-            Delta(entry, (Time.realtimeSinceStartup - s_Timers.Data[entry].Time) * 1000);
         }
 
         public static void Reset()

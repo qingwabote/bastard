@@ -22,7 +22,7 @@ namespace Bastard
                     //     ref var s = ref sub.subSystemList[i];
                     //     Debug.Log($"PostLateUpdate {s.type.FullName}");
                     // }
-                    int canvas = Profile.DefineEntry("Canvas");
+                    var canvas = Profile.DefineEntry("Canvas");
 
                     int UpdateCanvases = 0;
                     for (; UpdateCanvases < sub.subSystemList.Length; UpdateCanvases++)
@@ -40,7 +40,7 @@ namespace Bastard
                         updateDelegate = () =>
                         {
                             if (!Application.isPlaying) return;
-                            Profile.Begin(canvas);
+                            canvas.Begin();
                         },
                         type = typeof(PlayerUpdateCanvasesBefore)
                     };
@@ -50,7 +50,7 @@ namespace Bastard
                         updateDelegate = () =>
                         {
                             if (!Application.isPlaying) return;
-                            Profile.End(canvas);
+                            canvas.End();
                         },
                         type = typeof(PlayerUpdateCanvasesAfter)
                     };
