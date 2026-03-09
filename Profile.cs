@@ -91,8 +91,9 @@ namespace Bastard
         private struct Timer
         {
             public float Sum;
+            public float Max;
         }
-        private static readonly SharedStatic<FixedList64Bytes<Timer>> s_Timers = SharedStatic<FixedList64Bytes<Timer>>.GetOrCreate<Timer>();
+        private static readonly SharedStatic<FixedList128Bytes<Timer>> s_Timers = SharedStatic<FixedList128Bytes<Timer>>.GetOrCreate<Timer>();
 
         private class RunningTag { }
         private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<RunningTag>();
@@ -150,7 +151,8 @@ namespace Bastard
                     ref var timer = ref s_Timers.Data.ElementAt(i);
                     ref var entry = ref entries.ElementAt(i);
                     entry.Avg = timer.Sum / frames;
-                    timer.Sum = 0;
+                    entry.Max = timer.Max;
+                    timer = default;
                 }
 
                 frames = 0;
@@ -174,9 +176,9 @@ namespace Bastard
 
         private static void Delta(int entry, float value)
         {
-            s_Timers.Data.ElementAt(entry).Sum += value;
-            ref var e = ref Entries.Data.ElementAt(entry);
-            e.Max = math.max(value, e.Max);
+            ref var timer = ref s_Timers.Data.ElementAt(entry);
+            timer.Sum += value;
+            timer.Max = math.max(value, timer.Max);
         }
 
         public static void Reset()
