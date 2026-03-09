@@ -109,22 +109,15 @@ namespace Bastard
                 _ => throw new InvalidOperationException($"Unexpected ArrayType: {ArrayType}"),
             };
             var length = (ushort)math.ceil(sizeof(T) * capacity / (float)size);
-            Alloc(ArrayType, ref length, out m_Location, out var ptr, out var claimed);
-            if (!claimed)
-            {
-                ptr = ArrayAllocator.Alloc.Data.Invoke(ArrayType, ref length, out m_Location);
-            }
+            void*
+#if UNITY_WEBGL && !UNITY_EDITOR
+            ptr = ArrayAllocatorManaged.Alloc(ArrayType, ref length, out m_Location);
+#else
+            ptr = ArrayAllocator.Alloc.Data.Invoke(ArrayType, ref length, out m_Location);
+#endif
             UnsafeUtility.MemCpy(ptr, m_Ptr, m_Length * sizeof(T));
             m_Ptr = (T*)ptr;
             m_Capacity = (ushort)(size * length / sizeof(T));
-        }
-
-        [BurstDiscard]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Alloc(ArrayType arrayType, ref ushort length, out short location, out void* ptr, out bool claimed)
-        {
-            ptr = ArrayAllocatorManaged.Alloc(arrayType, ref length, out location);
-            claimed = true;
         }
     }
 }
