@@ -8,6 +8,14 @@ namespace Bastard
     [RequireComponent(typeof(TextMeshProUGUI))]
     public class Profiler : MonoBehaviour
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern UIntPtr emscripten_get_sbrk_ptr();
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern UIntPtr emscripten_get_heap_size();
+#endif
+
         [RuntimeInitializeOnLoadMethod]
         private static void Initialize()
         {
@@ -79,20 +87,30 @@ namespace Bastard
             int PadRight = 9;
             int PadLeft = 16;
 
-            string name = "FPS".PadRight(PadRight);
-            string text = $"{name} {Profile.FPS.ToString().PadLeft(PadLeft)}";
+            System.Text.StringBuilder sb = new();
+            sb.Append("FPS".PadRight(PadRight));
+            sb.Append(Profile.FPS.ToString().PadLeft(PadLeft));
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            sb.AppendLine();
+            sb.Append("Memory".PadRight(PadRight));
+            unsafe
+            {
+                sb.Append(((*(uint *)emscripten_get_sbrk_ptr()) / 1048576 + "/" + (uint)emscripten_get_heap_size() / 1048576).PadLeft(PadLeft));
+            }
+#endif
 
             ref var entries = ref Profile.Entries.Data;
             for (int i = 0; i < entries.Length; i++)
             {
-                ref var entry = ref entries.ElementAt(i);
-                name = entry.Name.ToString().PadRight(PadRight);
+                sb.AppendLine();
 
-                string value = entry.Avg.ToString("F3") + "/" + entry.Max.ToString("F3");
-                text += $"\n{name} {value.PadLeft(PadLeft)}";
+                ref var entry = ref entries.ElementAt(i);
+                sb.Append(entry.Name.ToString().PadRight(PadRight));
+                sb.Append((entry.Avg.ToString("F3") + "/" + entry.Max.ToString("F3")).PadLeft(PadLeft));
             }
 
-            m_Label.text = text;
+            m_Label.text = sb.ToString();
         }
     }
 }
