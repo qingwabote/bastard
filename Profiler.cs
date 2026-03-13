@@ -107,7 +107,7 @@ namespace Bastard
 
                 ref var entry = ref entries.ElementAt(i);
                 sb.Append(entry.Name.ToString().PadRight(PadRight));
-                sb.Append((entry.Avg.ToString("F3") + "/" + entry.Max.ToString("F3")).PadLeft(PadLeft));
+                sb.Append((entry.Avg.ToString("F2") + "/" + entry.Max.ToString("F1")).PadLeft(PadLeft));
             }
 
             m_Label.text = sb.ToString();
