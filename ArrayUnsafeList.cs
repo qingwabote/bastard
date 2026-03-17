@@ -26,7 +26,11 @@ namespace Bastard
         private static Array[] s_Arrays = new Array[4];
         private static Transient<short> m_Cursor = new();
 
+#if UNITY_EDITOR
+        [UnityEditor.InitializeOnLoadMethod]
+#else
         [RuntimeInitializeOnLoadMethod]
+#endif
         private static void Initialize()
         {
             ArrayAllocator.Alloc.Data = new(System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(m_AllocDelegate));
