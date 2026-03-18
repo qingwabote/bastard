@@ -15,13 +15,15 @@ namespace Bastard
         public float Max;
     }
 
+    /* A fixed size profile struct supports burst compile time evaluation */
     public struct Profile
     {
-        public struct Handle
+        /* A readonly handle can easily use in burst as static readonly field */
+        public readonly struct Handle
         {
-            public ref struct Scope
+            public readonly ref struct Scope
             {
-                private Handle m_Hanlde;
+                private readonly Handle m_Hanlde;
 
                 internal Scope(Handle hanlde)
                 {
@@ -37,45 +39,25 @@ namespace Bastard
 
             public readonly int Entry;
 
-            private double m_Time;
-
             internal Handle(int entry)
             {
                 Entry = entry;
-                m_Time = 0;
             }
 
-            public Scope MakeScope()
+            public Scope Auto()
             {
                 return new(this);
             }
 
-#if UNITY_WEBGL && !UNITY_EDITOR
-            [System.Runtime.InteropServices.DllImport("__Internal")]
-            private static extern double emscripten_get_now();
-
             public void Begin()
             {
-                m_Time = emscripten_get_now(); 
+                Profile.Begin(Entry);
             }
 
             public void End()
             {
-                Profile.Delta(Entry, (float)(emscripten_get_now() - m_Time));
+                Profile.End(Entry);
             }
-#else
-            public void Begin()
-            {
-                JobHandle.ScheduleBatchedJobs();
-                m_Time = Time.realtimeSinceStartupAsDouble;
-            }
-
-            public void End()
-            {
-                JobHandle.ScheduleBatchedJobs();
-                Profile.Delta(Entry, (float)(Time.realtimeSinceStartupAsDouble - m_Time) * 1000);
-            }
-#endif
 
             public void Delta(float value)
             {
@@ -90,16 +72,17 @@ namespace Bastard
 
         private struct Timer
         {
+            public double Now;
             public float Sum;
             public float Max;
         }
-        private static readonly SharedStatic<FixedList128Bytes<Timer>> s_Timers = SharedStatic<FixedList128Bytes<Timer>>.GetOrCreate<Timer>();
+        private static readonly SharedStatic<FixedList512Bytes<Timer>> s_Timers = SharedStatic<FixedList512Bytes<Timer>>.GetOrCreate<Timer>();
 
         private class RunningTag { }
         private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<RunningTag>();
 
-        private static Handle s_Main;
-        private static Handle s_Render;
+        private static readonly Handle s_Main;
+        private static readonly Handle s_Render;
 
         static Profile()
         {
@@ -173,6 +156,33 @@ namespace Bastard
             s_Timers.Data.Add(default);
             return new(Entries.Data.Length - 1);
         }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern double emscripten_get_now();
+
+        private static void Begin(int entry)
+        {
+            s_Timers.Data.ElementAt(entry).Now = emscripten_get_now();
+        }
+
+        private static void End(int entry)
+        {
+            Delta(entry, (float)(emscripten_get_now() - s_Timers.Data.ElementAt(entry).Now));
+        }
+#else
+        private static void Begin(int entry)
+        {
+            JobHandle.ScheduleBatchedJobs();
+            s_Timers.Data.ElementAt(entry).Now = Time.realtimeSinceStartupAsDouble;
+        }
+
+        private static void End(int entry)
+        {
+            JobHandle.ScheduleBatchedJobs();
+            Delta(entry, (float)(Time.realtimeSinceStartupAsDouble - s_Timers.Data.ElementAt(entry).Now) * 1000);
+        }
+#endif
 
         private static void Delta(int entry, float value)
         {
