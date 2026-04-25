@@ -173,12 +173,22 @@ namespace Bastard
 #else
         private static void Begin(int entry)
         {
+            if (!s_Running.Data)
+            {
+                return;
+            }
+
             JobHandle.ScheduleBatchedJobs();
             s_Timers.Data.ElementAt(entry).Now = Time.realtimeSinceStartupAsDouble;
         }
 
         private static void End(int entry)
         {
+            if (!s_Running.Data)
+            {
+                return;
+            }
+
             JobHandle.ScheduleBatchedJobs();
             Delta(entry, (float)(Time.realtimeSinceStartupAsDouble - s_Timers.Data.ElementAt(entry).Now) * 1000);
         }
@@ -186,6 +196,11 @@ namespace Bastard
 
         private static void Delta(int entry, float value)
         {
+            if (!s_Running.Data)
+            {
+                return;
+            }
+
             ref var timer = ref s_Timers.Data.ElementAt(entry);
             timer.Sum += value;
             timer.Max = math.max(value, timer.Max);
