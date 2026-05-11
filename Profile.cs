@@ -2,7 +2,6 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -81,15 +80,13 @@ namespace Bastard
         private class RunningTag { }
         private static readonly SharedStatic<bool> s_Running = SharedStatic<bool>.GetOrCreate<RunningTag>();
 
-        private static readonly Handle s_Main;
         private static readonly Handle s_Render;
 
         static Profile()
         {
-            Entries.Data = new() { new Entry() { Name = "Main" }, new Entry() { Name = "Render" } };
-            s_Timers.Data = new() { default, default };
-            s_Main = new(0);
-            s_Render = new(1);
+            Entries.Data = new() { new Entry() { Name = "Render" } };
+            s_Timers.Data = new() { default };
+            s_Render = new(0);
         }
 
         public static void Run()
@@ -106,17 +103,9 @@ namespace Bastard
             {
                 s_Render.Begin();
             };
-            // List<ProfilerRecorderHandle> list = new();
-            // ProfilerRecorderHandle.GetAvailable(list);
-            // foreach (var item in list)
-            // {
-            //     Debug.Log($"ProfilerRecorderHandle {ProfilerRecorderHandle.GetDescription(item).Name}");
-            // }
-            var mainRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "CPU Main Thread Frame Time");
             RenderPipelineManager.endContextRendering += (context, cameras) =>
             {
                 s_Render.End();
-                s_Main.Delta(mainRecorder.CurrentValue / 1000000);
 
                 frames += 1;
                 elapse += Time.unscaledDeltaTime;

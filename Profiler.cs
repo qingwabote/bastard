@@ -1,5 +1,6 @@
 using System;
 using TMPro;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.LowLevel;
 
@@ -73,19 +74,58 @@ namespace Bastard
         private struct PlayerUpdateCanvasesBefore { }
         private struct PlayerUpdateCanvasesAfter { }
 
+        private struct Timer
+        {
+            public float Avg;
+            public float Max;
+
+            private float m_Sum;
+            private float m_Max;
+
+            public void Step(float value)
+            {
+                m_Sum += value;
+                m_Max = Mathf.Max(m_Max, value);
+            }
+
+            public void Snap(int frames)
+            {
+                Avg = frames > 0 ? m_Sum / frames : 0;
+                Max = m_Max;
+                m_Sum = 0;
+                m_Max = 0;
+            }
+        }
+
         private TextMeshProUGUI m_Label;
+        private ProfilerRecorder m_MainRecorder;
+        private ProfilerRecorder m_DrawCallRecorder;
+        private Timer m_Main;
+        private Timer m_DrawCall;
+        private int m_Frames;
+        private float m_Elapse;
 
         void Start()
         {
             m_Label = GetComponent<TextMeshProUGUI>();
+            m_MainRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "CPU Main Thread Frame Time");
+            m_DrawCallRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Draw Calls Count");
 
             Profile.Run();
+        }
+
+        void OnDestroy()
+        {
+            m_MainRecorder.Dispose();
+            m_DrawCallRecorder.Dispose();
         }
 
         void Update()
         {
             int PadRight = 9;
             int PadLeft = 16;
+
+            UpdateRecorderStats();
 
             System.Text.StringBuilder sb = new();
             sb.Append("FPS".PadRight(PadRight));
@@ -100,6 +140,14 @@ namespace Bastard
             }
 #endif
 
+            sb.AppendLine();
+            sb.Append("DrawCall".PadRight(PadRight));
+            sb.Append((m_DrawCall.Avg.ToString("F0") + "/" + m_DrawCall.Max.ToString("F0")).PadLeft(PadLeft));
+
+            sb.AppendLine();
+            sb.Append("Main".PadRight(PadRight));
+            sb.Append((m_Main.Avg.ToString("F2") + "/" + m_Main.Max.ToString("F1")).PadLeft(PadLeft));
+
             ref var entries = ref Profile.Entries.Data;
             for (int i = 0; i < entries.Length; i++)
             {
@@ -111,6 +159,24 @@ namespace Bastard
             }
 
             m_Label.text = sb.ToString();
+        }
+
+        private void UpdateRecorderStats()
+        {
+            m_Main.Step(m_MainRecorder.LastValue / 1_000_000f);
+            m_DrawCall.Step(m_DrawCallRecorder.LastValue);
+
+            m_Frames += 1;
+            m_Elapse += Time.unscaledDeltaTime;
+            if (m_Elapse < 1.0f)
+            {
+                return;
+            }
+
+            m_Main.Snap(m_Frames);
+            m_DrawCall.Snap(m_Frames);
+            m_Frames = 0;
+            m_Elapse = 0;
         }
     }
 }
