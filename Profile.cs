@@ -138,6 +138,11 @@ namespace Bastard
 
         public static Handle DefineEntry(FixedString32Bytes name)
         {
+            if (Entries.Data.Length >= Entries.Data.Capacity)
+            {
+                return default;
+            }
+
             Entries.Data.Add(new Entry()
             {
                 Name = name
