@@ -122,8 +122,8 @@ namespace Bastard
 
         void Update()
         {
-            int PadRight = 9;
-            int PadLeft = 16;
+            int PadRight = 11;
+            int PadLeft = 9;
 
             UpdateRecorderStats();
 
