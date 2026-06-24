@@ -1,7 +1,9 @@
 {
     "name": "Bastard.Editor",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "Unity.Collections"
+    ],
     "includePlatforms": [
         "Editor"
     ],
