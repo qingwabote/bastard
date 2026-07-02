@@ -2,6 +2,7 @@
     "name": "Bastard.Editor",
     "rootNamespace": "",
     "references": [
+        "Bastard",
         "Unity.Collections"
     ],
     "includePlatforms": [
