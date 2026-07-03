@@ -17,7 +17,7 @@ namespace Bastard
         private static extern UIntPtr emscripten_get_heap_size();
 #endif
 
-        [RuntimeInitializeOnLoadMethod]
+        // [RuntimeInitializeOnLoadMethod]
         private static void Initialize()
         {
             var loop = PlayerLoop.GetCurrentPlayerLoop();
