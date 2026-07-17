@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -39,20 +40,27 @@ namespace Bastard
 
             var picker = (PrefabGuidAttribute)attribute;
             var resolvedOptions = ResolveOptions(picker.RootPath, property.stringValue);
-            var popup = new PopupField<string>(property.displayName, resolvedOptions.DisplayNames.ToList(), resolvedOptions.CurrentIndex)
+            var guidChoices = resolvedOptions.Guids.ToList();
+
+            string FormatGuid(string guid)
             {
-                tooltip = property.tooltip
+                var index = guidChoices.IndexOf(guid);
+                if (index >= 0 && index < resolvedOptions.DisplayNames.Length)
+                {
+                    return resolvedOptions.DisplayNames[index];
+                }
+
+                return string.IsNullOrEmpty(guid) ? "<None>" : $"<Missing> {guid}";
+            }
+
+            var popup = new PopupField<string>(property.displayName, guidChoices, resolvedOptions.CurrentIndex)
+            {
+                tooltip = property.tooltip,
+                formatListItemCallback = FormatGuid,
+                formatSelectedValueCallback = FormatGuid
             };
 
-            popup.RegisterValueChangedCallback(_ =>
-            {
-                var serializedObject = property.serializedObject;
-                var targetProperty = serializedObject.FindProperty(property.propertyPath);
-                if (targetProperty == null) return;
-
-                targetProperty.stringValue = resolvedOptions.Guids[popup.index];
-                serializedObject.ApplyModifiedProperties();
-            });
+            popup.BindProperty(property);
 
             return popup;
         }
