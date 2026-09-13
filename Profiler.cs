@@ -151,9 +151,13 @@ namespace Bastard
             ref var entries = ref Profile.Entries.Data;
             for (int i = 0; i < entries.Length; i++)
             {
-                sb.AppendLine();
-
                 ref var entry = ref entries.ElementAt(i);
+                if (entry.Avg == 0 && entry.Max == 0)
+                {
+                    continue;
+                }
+
+                sb.AppendLine();
                 sb.Append(entry.Name.ToString().PadRight(PadRight));
                 sb.Append((entry.Avg.ToString("F2") + "/" + entry.Max.ToString("F1")).PadLeft(PadLeft));
             }
