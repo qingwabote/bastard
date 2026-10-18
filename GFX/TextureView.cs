@@ -19,7 +19,10 @@ namespace Bastard
         public TextureView(int length = 0, int capacity = 16) : base(length)
         {
             var (width, height) = Length2extent(math.max(length, capacity));
-            Texture = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true);
+            Texture = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true)
+            {
+                hideFlags = HideFlags.DontSaveInEditor
+            };
             m_Source.Value = Texture.GetPixelData<float>(0);
         }
 
