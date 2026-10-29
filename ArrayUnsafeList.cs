@@ -12,32 +12,42 @@ namespace Bastard
         Vector
     }
 
-    public readonly struct ArrayAllocator
+    internal readonly struct ArrayAllocatorUnmanaged
     {
-        public unsafe delegate void* AllocDelegate(ArrayType arrayType, ref ushort length, out short location);
+        internal unsafe delegate void* AllocDelegate(ArrayType arrayType, ref ushort length, out short location);
 
         private struct AllocTag { }
-        static public readonly SharedStatic<FunctionPointer<AllocDelegate>> Alloc = SharedStatic<FunctionPointer<AllocDelegate>>.GetOrCreate<AllocTag>();
+        internal static readonly SharedStatic<FunctionPointer<AllocDelegate>> Alloc = SharedStatic<FunctionPointer<AllocDelegate>>.GetOrCreate<AllocTag>();
     }
 
-    public class ArrayAllocatorManaged
+    public class ArrayAllocator
     {
         private static Array[] s_Arrays = new Array[4];
         private static Transient<short> m_Cursor = new();
 
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
-#else
+#elif !UNITY_WEBGL
         [RuntimeInitializeOnLoadMethod]
 #endif
         private static void Initialize()
         {
-            ArrayAllocator.Alloc.Data = new(System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(m_AllocDelegate));
+            ArrayAllocatorUnmanaged.Alloc.Data = new(System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(m_AllocDelegate));
         }
 
-        private readonly unsafe static ArrayAllocator.AllocDelegate m_AllocDelegate = Alloc;
-        [AOT.MonoPInvokeCallback(typeof(ArrayAllocator.AllocDelegate))]
-        static public unsafe void* Alloc(ArrayType arrayType, ref ushort length, out short location)
+        private readonly unsafe static ArrayAllocatorUnmanaged.AllocDelegate m_AllocDelegate = AllocManaged;
+
+        public static unsafe void* Alloc(ArrayType arrayType, ref ushort length, out short location)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return AllocManaged(arrayType, ref length, out location);
+#else
+            return ArrayAllocatorUnmanaged.Alloc.Data.Invoke(arrayType, ref length, out location);
+#endif
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(ArrayAllocatorUnmanaged.AllocDelegate))]
+        private static unsafe void* AllocManaged(ArrayType arrayType, ref ushort length, out short location)
         {
             void* ptr;
             Array array = arrayType switch
@@ -114,9 +124,9 @@ namespace Bastard
             var length = (ushort)math.ceil(sizeof(T) * capacity / (float)size);
             void*
 #if UNITY_WEBGL && !UNITY_EDITOR
-            ptr = ArrayAllocatorManaged.Alloc(ArrayType, ref length, out m_Location);
+            ptr = ArrayAllocator.Alloc(ArrayType, ref length, out m_Location);
 #else
-            ptr = ArrayAllocator.Alloc.Data.Invoke(ArrayType, ref length, out m_Location);
+            ptr = ArrayAllocatorUnmanaged.Alloc.Data.Invoke(ArrayType, ref length, out m_Location);
 #endif
             UnsafeUtility.MemCpy(ptr, m_Ptr, m_Length * sizeof(T));
             m_Ptr = (T*)ptr;

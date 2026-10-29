@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Bastard
 {
-    public readonly struct CameraExtensionsUnmanaged
+    internal readonly struct CameraExtensionsUnmanaged
     {
         public delegate void GetGroundAABBDelegate(out float2 min, out float2 max);
 
@@ -16,7 +16,7 @@ namespace Bastard
     {
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
-#else
+#elif !UNITY_WEBGL
         [RuntimeInitializeOnLoadMethod]
 #endif
         private static void InitializeGetGroundAABB()
